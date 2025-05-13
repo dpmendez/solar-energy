@@ -23,6 +23,7 @@ import dash
 from dash import dcc, html, Input, Output
 
 app = dash.Dash(__name__)
+server = app.server  # Needed for Render
 
 # Dropdown variable choices
 solar_options = [
@@ -81,4 +82,4 @@ def update_map(var, agg):
     return fig
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080) # dash uses this port on render
+    app.run(debug=False, host="0.0.0.0", port=8080) # dash uses this port on render

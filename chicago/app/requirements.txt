@@ -1,4 +1,6 @@
-dash
-plotly
 pandas
 geopandas
+plotly
+shapely
+fiona
+gunicorn
