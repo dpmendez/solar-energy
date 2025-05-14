@@ -1,0 +1,3 @@
+# Ignore the large GeoJSON file
+# for when Rander is deploying
+data/solar_summary.geojson
