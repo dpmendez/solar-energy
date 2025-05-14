@@ -3,23 +3,25 @@ import json
 import os
 import requests
 
-# change dl=0 with dl=1 for direct download
-DROPBOX_URL = "https://www.dropbox.com/scl/fi/nrohv5gfcckeiy8phool4/solar_summary.geojson?rlkey=5w6d7mnoz61a8ssvemea9rx32&st=dyn9zsan&dl=1"
-LOCAL_PATH = "../data/solar_summary.geojson"
+# # ------------------------------------------
+# # change dl=0 with dl=1 for direct download
+# DROPBOX_URL = "https://www.dropbox.com/scl/fi/nrohv5gfcckeiy8phool4/solar_summary.geojson?rlkey=5w6d7mnoz61a8ssvemea9rx32&st=dyn9zsan&dl=1"
+# LOCAL_PATH = "../data/solar_summary.geojson"
 
-# Ensure directory exists
-os.makedirs("../data", exist_ok=True)
+# # Ensure directory exists
+# os.makedirs("../data", exist_ok=True)
 
-# Download only if it doesn't exist
-if not os.path.exists(LOCAL_PATH):
-    print("Downloading GeoJSON from Dropbox...")
-    r = requests.get(DROPBOX_URL)
-    with open(LOCAL_PATH, "wb") as f:
-        f.write(r.content)
-    print("Download complete.")
+# # Download only if it doesn't exist
+# if not os.path.exists(LOCAL_PATH):
+#     print("Downloading GeoJSON from Dropbox...")
+#     r = requests.get(DROPBOX_URL)
+#     with open(LOCAL_PATH, "wb") as f:
+#         f.write(r.content)
+#     print("Download complete.")
+# # ------------------------------------------
 
 
-gdf_avg = gpd.read_file("../data/solar_summary.geojson")
+gdf_avg = gpd.read_file("../data/central_chicago_solar_summary.geojson")
 
 gdf_avg = gdf_avg.reset_index(drop=True)         # Reset index to ensure it's clean
 gdf_avg.index = gdf_avg.index.astype(str)        # Convert index to string
