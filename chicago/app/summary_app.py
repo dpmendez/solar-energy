@@ -43,14 +43,16 @@ import dash
 from dash import dcc, html, Input, Output
 
 app = dash.Dash(__name__)
-server = app.server  # Needed for Render
 
 # Dropdown variable choices
-solar_options = [
-    {"label": "Global Horizontal Irradiance (GHI)", "value": "GHI"},
-    {"label": "Direct Normal Irradiance (DNI)", "value": "DNI"},
-    {"label": "Diffuse Horizontal Irradiance (DHI)", "value": "DHI"}
+metric_options = [
+    {"label": "Global Horizontal Irradiance (GHI)", "value": "ghi_sum"},
+    {"label": "Estimated Energy Output (kWh)", "value": "kwh_estimate"},
 ]
+pretty_labels={ 
+    "ghi_sum": "Annual GHI (kWh/m²)",
+    "kwh_estimate": "Estimated Annual Energy (kWh)"
+}
 
 app.layout = html.Div([
     html.H2("Solar Radiation Map by Building"),
@@ -58,18 +60,20 @@ app.layout = html.Div([
     html.Div([
         html.Label("Solar Metric"),
         dcc.Dropdown(
-            id="solar-variable",
-            options=solar_options,
-            value="GHI"
+            id="metric",
+            options=metric_options,
+            value="ghi_sum"
         ),
     ], style={"width": "48%", "display": "inline-block"}),
 
     html.Div([
-        html.Label("Aggregation"),
+        html.Label("Orientation"),
         dcc.Dropdown(
-            id="agg-type",
-            options=[{"label": "Average", "value": "mean"}, {"label": "Sum", "value": "sum"}],
-            value="mean"
+            id="roof-orientation",
+            options=[{"label": "All", "value": "all"}] + [
+                {"label": o.title(), "value": o} for o in sorted(gdf_avg["orientation"].dropna().unique())
+            ],
+            value="all"
         ),
     ], style={"width": "48%", "display": "inline-block"}),
 
@@ -78,25 +82,31 @@ app.layout = html.Div([
 
 @app.callback(
     Output("solar-map", "figure"),
-    Input("solar-variable", "value"),
-    Input("agg-type", "value")
+    Input("metric", "value"),
+    Input("roof-orientation", "value")
 )
-def update_map(var, agg):
-    column_name = f"{var}_{agg}"  # e.g. GHI_mean or GHI_sum
-    print(f"Rendering: {column_name}")
-    
+def update_map(metric, orientation):
+    # Filter data by orientation
+    if orientation == "all":
+        filtered_gdf = gdf_avg.copy()
+    else:
+        filtered_gdf = gdf_avg[gdf_avg["orientation"] == orientation]
+
+    # Rename column for cleaner hover label
+    filtered_gdf = filtered_gdf.rename(columns={"bldg_id": "Building ID"})
+
     fig = px.choropleth_mapbox(
-        gdf_avg,
+        filtered_gdf,
         geojson=geojson_data,
         locations="uid",
-        color=column_name,
-        hover_data={"BLDG_ID": True, column_name: True, "lon":True, "lat": True, "uid": False},
+        color=metric,
+        hover_data={"Building ID": True, "lon":True, "lat": True, "uid": False},
         color_continuous_scale="YlOrRd",
         mapbox_style="carto-positron",
         zoom=12,
-        center={"lat": 41.8781, "lon": -87.6298},  # Chicago
+        center={"lat": 41.8781, "lon": -87.6298},
         opacity=0.7,
-        labels={column_name: f"{var.upper()} ({agg})"}
+        labels={metric: pretty_labels.get(metric, metric)}
     )
     fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
     return fig
