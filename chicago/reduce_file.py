@@ -20,7 +20,7 @@ central_gdf = full_gdf[
 ]
 
 # Simplify geometries to reduce size
-central_gdf.loc[:, "geometry"] = central_gdf["geometry"].simplify(tolerance=0.01, preserve_topology=True)
+central_gdf.loc[:, "geometry"] = central_gdf["geometry"].simplify(tolerance=0.0001, preserve_topology=True)
 
 # Drop unneeded columns to reduce memory footprint (keeping only key ones)
 columns_to_keep = columns_to_keep = ["ghi_sum", "lon", "lat", "bldg_id", "orientation", "kwh_estimate", "geometry"]
