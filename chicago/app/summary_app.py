@@ -43,6 +43,7 @@ import dash
 from dash import dcc, html, Input, Output
 
 app = dash.Dash(__name__)
+server = app.server  # Needed for Render
 
 # Dropdown variable choices
 metric_options = [
