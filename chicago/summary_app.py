@@ -57,13 +57,14 @@ app.layout = html.Div([
         ),
     ], style={"width": "48%", "display": "inline-block"}),
 
-    dcc.Graph(id="solar-map")
+    dcc.Graph(id="solar-map"),
 ])
 
 @app.callback(
     Output("solar-map", "figure"),
     Input("metric", "value"),
-    Input("roof-orientation", "value")
+    Input("roof-orientation", "value"),
+    Input("value-range", "value")
 )
 def update_map(metric, orientation):
     # Filter data by orientation
@@ -91,4 +92,4 @@ def update_map(metric, orientation):
     fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
     return fig
 
-app.run(debug=True,port=8051)
+app.run(debug=True,port=8050)
