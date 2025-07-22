@@ -30,7 +30,7 @@ metric_options = [
     {"label": "Estimated Energy Output (kWh)", "value": "kwh_estimate"},
 ]
 pretty_labels={ 
-    "ghi_sum": "Annual GHI (kWh/m²)",
+    "ghi_sum": "Annual GHI (Wh/m²)",
     "kwh_estimate": "Estimated Annual Energy (kWh)"
 }
 
