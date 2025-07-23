@@ -32,11 +32,9 @@ updated November 13th 2024
 
 Note: Data covers the entire city of Chicago, even if the frontend currently displays a subset.
 
-## 🔧 Planned Improvements
+## 🔧 Wishful Improvements
 
-- [ ] Add range slider to filter buildings by solar potential (e.g., GHI or kWh).
-- [ ] Incorporate daily and hourly solar radiation visualizations.
-- [ ] Enable exportable reports of top-performing rooftops for solar targeting.
+- [X] Enable exportable reports of top-performing rooftops for solar targeting.
 - [ ] Add clear outlines for recommended buildings.
 - [ ] Expand to other cities using the same analysis pipeline.
 - [ ] Integrate climate equity, grid proximity, and policy constraints.
