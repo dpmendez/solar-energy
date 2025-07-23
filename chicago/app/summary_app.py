@@ -2,46 +2,45 @@ import geopandas as gpd
 import json
 import os
 import requests
-
-# # ------------------------------------------
-# # change dl=0 with dl=1 for direct download
-# DROPBOX_URL = "https://www.dropbox.com/scl/fi/nrohv5gfcckeiy8phool4/solar_summary.geojson?rlkey=5w6d7mnoz61a8ssvemea9rx32&st=dyn9zsan&dl=1"
-# LOCAL_PATH = "../data/solar_summary.geojson"
-
-# # Ensure directory exists
-# os.makedirs("../data", exist_ok=True)
-
-# # Download only if it doesn't exist
-# if not os.path.exists(LOCAL_PATH):
-#     print("Downloading GeoJSON from Dropbox...")
-#     r = requests.get(DROPBOX_URL)
-#     with open(LOCAL_PATH, "wb") as f:
-#         f.write(r.content)
-#     print("Download complete.")
-# # ------------------------------------------
+import plotly.express as px
+import dash
+from dash import dcc, html, dash_table, Input, Output
+from app.viz import plot_top_k_mapbox
 
 
-gdf_avg = gpd.read_file("../data/central_chicago_solar_summary.geojson")
-
-gdf_avg = gdf_avg.reset_index(drop=True)         # Reset index to ensure it's clean
-gdf_avg.index = gdf_avg.index.astype(str)        # Convert index to string
-gdf_avg["uid"] = gdf_avg.index                   # Explicitly store it for use in `locations`
-
-# Plotly and Dash require latitude/longitude in (WGS84) format — that's EPSG:4326
-# Convert only if needed
-gdf_avg = gdf_avg.to_crs("EPSG:4326")
+### Get the data
+gdf_avg = gpd.read_file("data/central_chicago_solar_summary.geojson")
+gdf_avg = gdf_avg.reset_index(drop=True)    # Reset index to ensure it's clean
+gdf_avg["uid"] = gdf_avg.index.astype(str)  # Explicitly store it for use in `locations`
+gdf_avg = gdf_avg.to_crs(epsg=4326)         # Plotly and Dash require lat lon in (WGS84) format
 
 geojson_data = gdf_avg.set_index("uid").geometry.__geo_interface__
 
+top_k = gpd.read_file("data/top_100_buildings.geojson")
 
-# --------------------------
-# --------------------------
-# --------------------------
+# Define table elements
+table_df = top_k.copy()
+table_df.rename(columns={
+    "bldg_id": "ID",
+    "lat" : "Lat",
+    "lon" : "Lon",
+    "kwh_estimate": "Estimated kWh",
+    "orientation": "Orientation"
+}, inplace=True)
 
-import plotly.express as px
-import dash
-from dash import dcc, html, Input, Output
+table_df = table_df[["ID", "Lat", "Lon", "Estimated kWh", "Orientation"]]
 
+dash_table.DataTable(
+    id='top-k-table',
+    columns=[{"name": i, "id": i} for i in table_df.columns],
+    data=table_df.to_dict('records'),
+    style_table={'overflowX': 'auto', 'height': '400px'},
+    style_cell={'textAlign': 'left', 'padding': '5px'},
+    style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'},
+)
+
+
+### The app
 app = dash.Dash(__name__)
 server = app.server  # Needed for Render
 
@@ -78,7 +77,30 @@ app.layout = html.Div([
         ),
     ], style={"width": "48%", "display": "inline-block"}),
 
-    dcc.Graph(id="solar-map")
+    dcc.Graph(id="solar-map"),
+
+    html.Div([
+    html.H2("Top 100 Buildings by Estimated Energy Output"),
+    
+    html.Div([
+        dcc.Graph(
+            id="top-k-map",
+            figure=plot_top_k_mapbox(top_k)
+        )
+    ], style={'width': '65%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+
+    html.Div([
+        dash_table.DataTable(
+            id='top-k-table',
+            columns=[{"name": i, "id": i} for i in table_df.columns],
+            data=table_df.to_dict('records'),
+            style_table={'overflowY': 'auto', 'height': '600px'},
+            style_cell={'textAlign': 'left', 'padding': '5px'},
+            style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'},
+        )
+    ], style={'width': '34%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginLeft': '1%'}),
+])
+
 ])
 
 @app.callback(
