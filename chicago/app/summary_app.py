@@ -9,14 +9,14 @@ from viz import plot_top_k_mapbox
 
 
 ### Get the data
-gdf_avg = gpd.read_file("data/central_chicago_solar_summary.geojson")
+gdf_avg = gpd.read_file("../data/central_chicago_solar_summary.geojson")
 gdf_avg = gdf_avg.reset_index(drop=True)    # Reset index to ensure it's clean
 gdf_avg["uid"] = gdf_avg.index.astype(str)  # Explicitly store it for use in `locations`
 gdf_avg = gdf_avg.to_crs(epsg=4326)         # Plotly and Dash require lat lon in (WGS84) format
 
 geojson_data = gdf_avg.set_index("uid").geometry.__geo_interface__
 
-top_k = gpd.read_file("data/top_100_buildings.geojson")
+top_k = gpd.read_file("../data/top_100_buildings.geojson")
 
 # Define table elements
 table_df = top_k.copy()
