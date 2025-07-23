@@ -5,7 +5,7 @@ import requests
 import plotly.express as px
 import dash
 from dash import dcc, html, dash_table, Input, Output
-from app.viz import plot_top_k_mapbox
+from viz import plot_top_k_mapbox
 
 
 ### Get the data
