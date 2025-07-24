@@ -1,5 +1,6 @@
-EFFICIENCY = 0.18 # 18% panel + system efficiency
-USABLE_AREA = 0.80 # Not all the rooftop area might be useful
+SYSTEM_EFFICIENCY = 0.18 # 18% panel + system efficiency
+DERATING_FACTOR = 0.77   # Account for system losses (inverters, wiring, etc.)
+USABLE_AREA = 0.75       # Assume 75% of rooftop is usable
 
 from shapely.geometry import LineString
 import numpy as np
@@ -64,5 +65,4 @@ def get_kwh(ghi, area):
     """
     if ghi is None or area is None or ghi <= 0 or area <= 0:
         return 0
-    return ghi * area * USABLE_AREA * EFFICIENCY / 1000
-
+    return ghi * (area * USABLE_AREA) * SYSTEM_EFFICIENCY * DERATING_FACTOR / 1000
