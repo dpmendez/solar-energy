@@ -1,4 +1,5 @@
-EFFICIENCY = 0.15 # 15% panel + system efficiency
+EFFICIENCY = 0.18 # 18% panel + system efficiency
+USABLE_AREA = 0.80 # Not all the rooftop area might be useful
 
 from shapely.geometry import LineString
 import numpy as np
@@ -63,5 +64,5 @@ def get_kwh(ghi, area):
     """
     if ghi is None or area is None or ghi <= 0 or area <= 0:
         return 0
-    return ghi * area * EFFICIENCY / 1000
+    return ghi * area * USABLE_AREA * EFFICIENCY / 1000
 
