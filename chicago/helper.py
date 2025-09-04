@@ -1,6 +1,15 @@
-SYSTEM_EFFICIENCY = 0.18 # 18% panel + system efficiency
-DERATING_FACTOR = 0.77   # Account for system losses (inverters, wiring, etc.)
-USABLE_AREA = 0.75       # Assume 75% of rooftop is usable
+# Assumptions for energy estimation (physics)
+system_efficiency  = 0.18 # 18% panel + system efficiency
+derating_factor    = 0.77 # Account for system losses (inverters, wiring, etc.)
+usable_roof_area   = 0.75 # Assume 75% of rooftop is usable
+grid_ef_kg_per_kwh = 0.40  # kg CO2 per kWh (US grid average; use 0.90 for coal, 0.40 gas, ~0.05 nuclear)
+
+# Assumptions for financial estimation (market)
+pv_power_density_kw_per_m2 = 0.18  # kW per m²
+installed_cost_per_kw      = 1800  # $/kW
+om_rate                    = 0.01  # annual O&M fraction of CapEx
+tariff_usd_per_kwh         = 0.15  # $/kWh
+
 
 from shapely.geometry import LineString
 import numpy as np
@@ -65,4 +74,38 @@ def get_kwh(ghi, area):
     """
     if ghi is None or area is None or ghi <= 0 or area <= 0:
         return 0
-    return ghi * (area * USABLE_AREA) * SYSTEM_EFFICIENCY * DERATING_FACTOR / 1000
+    return ghi * (area * usable_roof_area) * system_efficiency * derating_factor / 1000
+
+
+def get_finance_climate_computations(df, annual_kwh_col = "kwh_estimate", roof_area_col = "surface_area"):
+    """
+    Adds finance and climate metrics to a GeoDataFrame.
+    
+    Metrics added:
+        - system_kw: PV system size in kW
+        - capex_usd: capital expenditure
+        - annual_savings_usd: savings per year
+        - annual_om_usd: operations and maintenance (O&M) cost per year
+        - simple_payback_years: years
+        - simple_roi: annual return relative to the upfront cost (%/year)
+        - co2_avoided_t: CO2 avoided per year (metric tons)
+    
+    df: GeoDataFrame with at least 'annual_kw_col' and 'roof_area_col' columns.
+    """
+
+    df = df.copy()
+
+    df["annual_kwh"] = df[annual_kwh_col]
+    df["system_kw"] = df[roof_area_col] * usable_roof_area * pv_power_density_kw_per_m2
+    
+    # Financial metrics
+    df["capex_usd"] = df["system_kw"] * installed_cost_per_kw
+    df["annual_savings_usd"] = df["annual_kwh"] * tariff_usd_per_kwh
+    df["annual_om_usd"] = df["capex_usd"] * om_rate
+    
+    df["simple_payback_years"] = df["capex_usd"] / (df["annual_savings_usd"] - df["annual_om_usd"])
+    df["simple_roi"] = (df["annual_savings_usd"] - df["annual_om_usd"]) / df["capex_usd"]
+    
+    df["co2_avoided_t"] = df[annual_kwh_col] * grid_ef_kg_per_kwh / 1000 # CO2 avoided (t/year)
+
+    return df
