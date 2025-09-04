@@ -77,7 +77,28 @@ def get_kwh(ghi, area):
     return ghi * (area * usable_roof_area) * system_efficiency * derating_factor / 1000
 
 
-def get_finance_climate_computations(df, annual_kwh_col = "kwh_estimate", roof_area_col = "surface_area"):
+def get_co2_avoided(annual_kwh, grid_ef_kg_per_kwh=grid_ef_kg_per_kwh):
+    """
+    Estimate avoided CO2 emissions from annual solar energy generation.
+
+    Parameters
+    ----------
+    annual_kwh : float
+        Annual solar energy generation in kWh.
+    grid_ef_kg_per_kwh : float, optional
+        Grid emission factor in kgCO2 per kWh.
+
+    Returns
+    -------
+    float
+        Annual CO2 avoided in metric tons (tCO2/year).
+    """
+    if annual_kwh is None or annual_kwh <= 0:
+        return 0
+    return annual_kwh * grid_ef_kg_per_kwh / 1000  # convert kg → metric tons
+
+
+def get_finance_computations(df, annual_kwh_col = "kwh_estimate", roof_area_col = "surface_area"):
     """
     Adds finance and climate metrics to a GeoDataFrame.
     
@@ -88,7 +109,6 @@ def get_finance_climate_computations(df, annual_kwh_col = "kwh_estimate", roof_a
         - annual_om_usd: operations and maintenance (O&M) cost per year
         - simple_payback_years: years
         - simple_roi: annual return relative to the upfront cost (%/year)
-        - co2_avoided_t: CO2 avoided per year (metric tons)
     
     df: GeoDataFrame with at least 'annual_kw_col' and 'roof_area_col' columns.
     """
@@ -105,7 +125,5 @@ def get_finance_climate_computations(df, annual_kwh_col = "kwh_estimate", roof_a
     
     df["simple_payback_years"] = df["capex_usd"] / (df["annual_savings_usd"] - df["annual_om_usd"])
     df["simple_roi"] = (df["annual_savings_usd"] - df["annual_om_usd"]) / df["capex_usd"]
-    
-    df["co2_avoided_t"] = df[annual_kwh_col] * grid_ef_kg_per_kwh / 1000 # CO2 avoided (t/year)
 
     return df
