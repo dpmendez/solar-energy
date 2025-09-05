@@ -117,7 +117,6 @@ def update_map(metric, orientation):
         filtered_gdf = gdf_avg[gdf_avg["orientation"] == orientation]
 
     # Rename column for cleaner hover label
-
     filtered_gdf = filtered_gdf.rename(columns={
         "bldg_id": "Building ID",
         "kwh_estimate": "Estimated kWh/year",
