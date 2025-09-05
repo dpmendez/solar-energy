@@ -3,6 +3,7 @@ import json
 import plotly.express as px
 import dash
 from dash import dcc, html, dash_table, Input, Output
+from dash.dash_table.Format import Format, Group, Scheme
 from app.viz import plot_top_k_mapbox
 
 ### Get the data
