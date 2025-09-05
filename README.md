@@ -6,6 +6,10 @@ This interactive dashboard visualizes the annual rooftop solar potential of buil
 
 ⚠️ Note: The live app currently displays a limited area of Chicago, but the analysis covers the entire city. A summary map and table show the top 100 buildings citywide with the highest estimated solar potential.
 
+## 🌍 Why It Matters
+
+By combining solar potential with financial and climate indicators, this project shows not just *where* solar panels could be installed, but also *why it makes sense* — highlighting economic feasibility and carbon reduction potential at the building level.
+
 ## 📌 Project Goals
 
 * Visualize building-level solar irradiance data across urban areas.
@@ -18,8 +22,12 @@ This interactive dashboard visualizes the annual rooftop solar potential of buil
 * Dynamic map of buildings colored by selected solar metric (GHI, DNI, or DHI).
 * Hover tooltips showing building-specific information.
 * Orientation filter for targeting south-, east-, west-, or flat-facing roofs.
-* Summary view with the top 100 highest potential rooftops, including:
+* Energy, climate and financial metrics for each building, including:
   * Estimated annual energy output (kWh)
+  * CO₂ emissions avoided (t/year)
+  * Estimated installation cost (CapEx)
+  * Annual savings and payback period
+* Summary view with the top 100 highest potential rooftops, including:
   * Building location (lat/lon)
   * Roof orientation
 * Interactive data table for easy browsing and download.
@@ -33,7 +41,10 @@ Input data is a GeoDataFrame with:
 * Building footprints: [City of Chicago data](https://data.cityofchicago.org)
 updated November 13th 2024 
 * Annual solar radiation values (GHI, DNI, DHI): [National Solar Radiation Database](https://nsrdb.nrel.gov/data-viewer) for 2023, 2km resolution, 60 minutes interval.
-* Additional features like estimated energy output, building ID and roof orientation.
+* Derived features: 
+  * Estimated energy output (kWh/year) 
+  * Financial metrics (CapEx, O&M, ROI, payback period) 
+  * Climate metrics (CO₂ avoided per year)
 
 Note: While the dashboard currently displays only a subset of buildings, the full analysis includes all of Chicago. The top 100 most promising buildings are highlighted regardless of display area.
 
