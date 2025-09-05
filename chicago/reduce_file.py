@@ -23,7 +23,7 @@ central_gdf = full_gdf[
 central_gdf.loc[:, "geometry"] = central_gdf["geometry"].simplify(tolerance=0.0001, preserve_topology=True)
 
 # Drop unneeded columns to reduce memory footprint (keeping only key ones)
-columns_to_keep = columns_to_keep = ["ghi_sum", "lon", "lat", "bldg_id", "orientation", "kwh_estimate", "geometry"]
+columns_to_keep = ["ghi_sum", "lon", "lat", "bldg_id", "orientation", "kwh_estimate", "co2_avoided_t", "capex_usd", "simple_payback_years", "geometry"]
 central_gdf = central_gdf[columns_to_keep]
 
 # Save to smaller GeoJSON file
