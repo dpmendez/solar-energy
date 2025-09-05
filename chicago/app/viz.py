@@ -73,3 +73,65 @@ def plot_top_k_mapbox(top_k_gdf, color_col="kwh_estimate", map_title="kWh/year")
     )
 
     return fig
+
+
+def scatter_tradeoff(df, top_n=100):
+    # Top N by kWh and by lowest investment
+    top_energy = df.nlargest(top_n, "kwh_estimate")
+    top_investment = df.nsmallest(top_n, "capex_usd")
+
+    # Mark category
+    df["category"] = "Other"
+    df.loc[top_energy.index, "category"] = "Top Energy"
+    df.loc[top_investment.index, "category"] = "Top Investment"
+
+    fig = px.scatter(
+        df,
+        x="capex_usd",
+        y="kwh_estimate",
+        size="co2_avoided_t",  # bubble size
+        color="category",
+        hover_data=["bldg_id", "simple_payback_years"],
+        labels={
+            "capex_usd": "Investment (USD)",
+            "kwh_estimate": "Estimated kWh/year",
+            "co2_avoided_t": "Avoided CO₂ (t/year)",
+            "category": "Ranking Group"
+        },
+        title="Tradeoff: Investment vs. Annual Solar Output"
+    )
+
+    fig.update_traces(marker=dict(opacity=0.7, line=dict(width=1, color='DarkSlateGrey')))
+    fig.update_layout(legend_title_text="Top Ranking")
+    
+    return fig
+
+
+def grouped_bars(df, top_n=100, by="kwh_estimate"):
+    # Select top N by chosen ranking
+    top_df = df.nlargest(top_n, by)
+
+    # Melt for grouped bars
+    plot_df = top_df.melt(
+        id_vars=["bldg_id"],
+        value_vars=["kwh_estimate", "capex_usd"],
+        var_name="Metric",
+        value_name="Value"
+    )
+
+    fig = px.bar(
+        plot_df,
+        x="bldg_id",
+        y="Value",
+        color="Metric",
+        barmode="group",
+        labels={
+            "bldg_id": "Building ID",
+            "Value": "Value",
+            "Metric": "Metric"
+        },
+        title=f"Top {top_n} Buildings by {by}"
+    )
+
+    return fig
+
