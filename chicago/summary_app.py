@@ -22,13 +22,13 @@ table_df.rename(columns={
     "lat" : "Lat",
     "lon" : "Lon",
     "orientation": "Orientation",
-    "kwh_estimate": "Estimated kWh",
-    "co2_avoided_t": "Avoided CO2 (t)",
+    "kwh_estimate": "Estimated kWh/year",
+    "co2_avoided_t": "Avoided CO2 (t/year)",
     "capex_usd": "Investment (USD)",
     "simple_payback_years": "Payback (years)"
 }, inplace=True)
 
-table_df = table_df[["ID", "Estimated kWh", "Avoided CO2 (t)", "Investment (USD)", "Payback (years)", "Lat", "Lon", "Orientation"]]
+table_df = table_df[["ID", "Estimated kWh/year", "Avoided CO2 (t/year)", "Investment (USD)", "Payback (years)", "Lat", "Lon", "Orientation"]]
 
 dash_table.DataTable(
     id='top-k-table',
@@ -46,13 +46,13 @@ app = dash.Dash(__name__)
 # Dropdown variable choices
 metric_options = [
     {"label": "Global Horizontal Irradiance (GHI)", "value": "ghi_sum"},
-    {"label": "Estimated Energy Output (kWh)", "value": "kwh_estimate"},
-    {"label": "Estimated Avoided CO2 (t)", "value": "co2_avoided_t"}
+    {"label": "Estimated Energy Output (kWh/year)", "value": "kwh_estimate"},
+    {"label": "Estimated Avoided CO2 (t/year)", "value": "co2_avoided_t"}
 ]
 pretty_labels={ 
     "ghi_sum": "Annual GHI (kWh/m²)",
     "kwh_estimate": "Estimated Annual Energy (kWh)",
-    "co2_avoided_t": "Avoided CO2 (t)"
+    "co2_avoided_t": "Avoided Annual CO2 (t)"
 }
 
 app.layout = html.Div([
@@ -117,14 +117,26 @@ def update_map(metric, orientation):
         filtered_gdf = gdf_avg[gdf_avg["orientation"] == orientation]
 
     # Rename column for cleaner hover label
-    filtered_gdf = filtered_gdf.rename(columns={"bldg_id": "Building ID"})
+
+    filtered_gdf = filtered_gdf.rename(columns={
+        "bldg_id": "Building ID",
+        "kwh_estimate": "Estimated kWh/year",
+        "co2_avoided_t": "Avoided CO2 (t/year)",
+        "capex_usd": "Investment (USD)",
+        "simple_payback_years": "Payback (years)"})
 
     fig = px.choropleth_mapbox(
         filtered_gdf,
         geojson=geojson_data,
         locations="uid",
         color=metric,
-        hover_data={"Building ID": True, "lon":False, "lat": False, "uid": False},
+        hover_data={
+            "Building ID": True,
+            "Estimated kWh/year":True,
+            "Avoided CO2 (t/year)":True,
+            "Investment (USD)":True,
+            "Payback (years)":True,
+            "lon":False, "lat": False, "uid": False},
         color_continuous_scale="YlOrRd",
         mapbox_style="carto-positron",
         zoom=12,
