@@ -60,7 +60,28 @@ pretty_labels={
 }
 
 app.layout = html.Div([
-    html.H2("Solar Radiation Map by Building"),
+
+    # ----- Header section -----
+    html.Div([
+        html.H2("Chicago Rooftop Solar Potential"),
+        html.P(
+            "This interactive dashboard maps and quantifies rooftop solar potential across city buildings. "
+            "You can explore solar radiation, estimated energy output, avoided CO₂ emissions, and financial metrics "
+            "such as investment cost and payback period."
+        ),
+    ], style={
+        "maxWidth": "900px",
+        "margin": "20px auto",
+        "padding": "15px",
+        "backgroundColor": "#f9f9f9",
+        "border": "1px solid #ddd",
+        "borderRadius": "8px",
+        "lineHeight": "1.6",
+        "fontSize": "16px"
+    }),
+
+    # ----- Controls + Map -----
+    html.H2("Solar Radiation Map"),
     
     html.Div([
         html.Label("Solar Metric"),
@@ -84,58 +105,74 @@ app.layout = html.Div([
 
     dcc.Graph(id="solar-map"),
 
+    # ----- Top 100 section -----
     html.Div([
-    html.H2("Top 100 Buildings"),
-    
-    html.Div([
-        html.Label("Ranking criterion"),
-        dcc.Dropdown(
-            id="ranking-criterion",
-            options=[
-                {"label": "Highest Energy Output", "value": "energy"},
-                {"label": "Lowest Investment", "value": "investment"},
-                {"label": "Fastest Payback", "value": "payback"},
-            ],
-            value="energy"  # default
-        )
-    ], style={"width": "48%", "marginBottom": "20px"}),
-   
-    html.Div([
-        dcc.Graph(
-            id="top-k-map",
-            figure=plot_top_k_mapbox(top_k_init)
-        )
-    ], style={'width': '65%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+        html.H2("Top 100 Buildings"),
+        
+        html.Div([
+            html.Label("Ranking criterion"),
+            dcc.Dropdown(
+                id="ranking-criterion",
+                options=[
+                    {"label": "Highest Energy Output", "value": "energy"},
+                    {"label": "Lowest Investment", "value": "investment"},
+                    {"label": "Fastest Payback", "value": "payback"},
+                ],
+                value="energy"  # default
+            )
+        ], style={"width": "48%", "marginBottom": "20px"}),
+       
+        html.Div([
+            dcc.Graph(
+                id="top-k-map",
+                figure=plot_top_k_mapbox(top_k_init)
+            )
+        ], style={'width': '65%', 'display': 'inline-block', 'verticalAlign': 'top'}),
 
-    html.Div([
-        dash_table.DataTable(
-            id='top-k-table',
-            columns=[
-                {"name": "ID", "id": "bldg_id"},
-                {"name": "Estimated kWh/year", "id": "kwh_estimate", 
-                 "type": "numeric", 
-                 "format": Format(group=Group.yes, precision=0, scheme=Scheme.fixed)},
-                {"name": "Investment (USD)", "id": "capex_usd", 
-                 "type": "numeric", 
-                 "format": Format(group=Group.yes, precision=0, scheme=Scheme.fixed)},
-                {"name": "Payback (years)", "id": "simple_payback_years", 
-                 "type": "numeric", 
-                 "format": Format(precision=1, scheme=Scheme.fixed)},
-                {"name": "Avoided CO2 t/year", "id": "co2_avoided_t", 
-                 "type": "numeric", 
-                 "format": Format(group=Group.yes, precision=1, scheme=Scheme.fixed)},
-                {"name": "Orientation", "id": "orientation"},
-                {"name": "Lat", "id": "lat"},
-                {"name": "Lon", "id": "lon"},
-            ],
-            data=[], # will be filled in callback
-            style_table={'overflowY': 'auto', 'height': '600px'},
-            style_cell={'textAlign': 'left', 'padding': '5px'},
-            style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0', 'position': 'sticky', 'top': 0, 'zIndex': 1},
-        )
-    ], style={'width': '34%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginLeft': '1%'}),
-    ])
+        html.Div([
+            dash_table.DataTable(
+                id='top-k-table',
+                columns=[
+                    {"name": "ID", "id": "bldg_id"},
+                    {"name": "Estimated kWh/year", "id": "kwh_estimate", 
+                     "type": "numeric", 
+                     "format": Format(group=Group.yes, precision=0, scheme=Scheme.fixed)},
+                    {"name": "Investment (USD)", "id": "capex_usd", 
+                     "type": "numeric", 
+                     "format": Format(group=Group.yes, precision=0, scheme=Scheme.fixed)},
+                    {"name": "Payback (years)", "id": "simple_payback_years", 
+                     "type": "numeric", 
+                     "format": Format(precision=1, scheme=Scheme.fixed)},
+                    {"name": "Avoided CO2 t/year", "id": "co2_avoided_t", 
+                     "type": "numeric", 
+                     "format": Format(group=Group.yes, precision=1, scheme=Scheme.fixed)},
+                    {"name": "Orientation", "id": "orientation"},
+                    {"name": "Lat", "id": "lat"},
+                    {"name": "Lon", "id": "lon"},
+                ],
+                data=[], # will be filled in callback
+                style_table={'overflowY': 'auto', 'height': '600px'},
+                style_cell={'textAlign': 'left', 'padding': '5px'},
+                style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0', 'position': 'sticky', 'top': 0, 'zIndex': 1},
+            )
+        ], style={'width': '34%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginLeft': '1%'}),
+    ]),
 
+    # ----- Footnote -----
+    html.Div([
+        html.P(
+            "Note: Results exclude rooftops below a minimum area and very low annual solar output. "
+            "This ensures rankings focus on buildings with meaningful potential."
+        )
+    ], style={
+        "maxWidth": "900px",
+        "margin": "30px auto 10px auto",
+        "padding": "10px",
+        "fontSize": "14px",
+        "color": "#555",
+        "fontStyle": "italic",
+        "textAlign": "center"
+    })
 ])
 
 @app.callback(
