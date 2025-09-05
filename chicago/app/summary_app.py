@@ -20,6 +20,10 @@ geojson_data = gdf_avg.set_index("uid").geometry.__geo_interface__
 # Default top 100 (highest energy output)
 top_k_init = gdf_avg.nlargest(100, "kwh_estimate").copy()
 
+# Thresholds
+min_area = 20  # m2
+min_kwh = 8000 # kWh/year
+
 # Define hover data and labels for the map
 hover_data={
     "bldg_id": True,
@@ -155,7 +159,7 @@ def update_map(metric, orientation):
         color_continuous_scale="YlOrRd",
         mapbox_style="carto-positron",
         zoom=12,
-        center={"lat": 41.895, "lon": -87.645},
+        center={"lat": 41.895, "lon": -87.675},
         opacity=0.7,
         labels=labels
     )
@@ -179,18 +183,27 @@ def update_map(metric, orientation):
 )
 def update_top_k(ranking):
 
+    # Defensive filtering (skip NaNs, ensure numeric)
+    df = gdf_avg.copy()
+    df = df.dropna(subset=["surface_area", "kwh_estimate"])
+    df = df[
+        (df["surface_area"].astype(float) >= min_area) &
+        (df["kwh_estimate"].astype(float) >= min_kwh)
+    ]
+
+    # Pick ranking
     if ranking == "energy":
-        df_top = gdf_avg.nlargest(100, "kwh_estimate")
+        df_top = df.nlargest(100, "kwh_estimate")
         color_top = "kwh_estimate"
         title = "Energy (kWh/year)"
         ascending = False
     elif ranking == "investment":
-        df_top = gdf_avg.nsmallest(100, "capex_usd")
+        df_top = df.nsmallest(100, "capex_usd")
         color_top = "capex_usd"
         title = "Investment (USD)"
         ascending = True
     elif ranking == "payback":
-        df_top = gdf_avg.nsmallest(100, "simple_payback_years")
+        df_top = df.nsmallest(100, "simple_payback_years")
         color_top = "simple_payback_years"
         title = "Payback (years)"
         ascending = True
@@ -203,17 +216,15 @@ def update_top_k(ranking):
         except Exception:
             print("Warning: failed to convert df_map to EPSG:4326 — check CRS")
 
-    # Prepare a table-friendly DataFrame (drop geometry, keep desired columns)
+    # Table
     table_cols = ["bldg_id", "kwh_estimate", "capex_usd", "simple_payback_years", "co2_avoided_t",  "orientation", "lat", "lon"]
-    # Keep only columns that exist, in that order
     present_cols = [c for c in table_cols if c in df_map.columns]
     df_table = df_map.drop(columns="geometry", errors="ignore").copy()
     df_table = df_table[present_cols].reset_index(drop=True)
 
-    # Create the figure (pass GeoDataFrame with geometry to plotting function)
+    # Map
     fig = plot_top_k_mapbox(df_map, color_top, title)
 
-    # Return figure and table data (DataTable expects list-of-dicts)
     return fig, df_table.to_dict("records")
 
 
