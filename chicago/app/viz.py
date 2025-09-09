@@ -75,46 +75,116 @@ def plot_top_k_mapbox(top_k_gdf, color_col="kwh_estimate", map_title="kWh/year")
     return fig
 
 
-def scatter_tradeoff(df, top_n=100):
-    # Top N by kWh and by lowest investment
+def scatter_tradeoff(df, top_n=100, size_by="co2_avoided_t"):
+    # Select top groups
     top_energy = df.nlargest(top_n, "kwh_estimate")
     top_investment = df.nsmallest(top_n, "capex_usd")
 
     # Mark category
+    df = df.copy()  # avoid modifying original
     df["category"] = "Other"
-    df.loc[top_energy.index, "category"] = "Top Energy"
+    df.loc[top_energy.index, "category"] = "Top kWh"
     df.loc[top_investment.index, "category"] = "Top Investment"
 
+    # Scatter plot
     fig = px.scatter(
         df,
         x="capex_usd",
-        y="kwh_estimate",
-        size="co2_avoided_t",  # bubble size
+        y="simple_payback_years",
+        size=size_by,  # "co2_avoided_t" or "kwh_estimate"
         color="category",
-        hover_data=["bldg_id", "simple_payback_years"],
+        hover_data=["bldg_id", "kwh_estimate", "co2_avoided_t"],
         labels={
             "capex_usd": "Investment (USD)",
+            "simple_payback_years": "Payback (years)",
             "kwh_estimate": "Estimated kWh/year",
             "co2_avoided_t": "Avoided CO₂ (t/year)",
             "category": "Ranking Group"
         },
-        title="Tradeoff: Investment vs. Annual Solar Output"
+        title=f"Tradeoff: Investment vs. Payback (bubble = {size_by})"
     )
 
-    fig.update_traces(marker=dict(opacity=0.7, line=dict(width=1, color='DarkSlateGrey')))
-    fig.update_layout(legend_title_text="Top Ranking")
+    fig.update_traces(marker=dict(opacity=0.7, line=dict(width=1, color="DarkSlateGrey")))
+
+
+def scatter_tradeoff_top_bottom(df, top_n=100, size_metric="kwh_estimate"):
+    """
+    Generates two scatter plots: top N and bottom N buildings by kWh.
     
-    return fig
+    Args:
+        df: GeoDataFrame or DataFrame with columns: 'bldg_id', 'capex_usd', 'simple_payback_years', 'kwh_estimate', 'co2_avoided_t'
+        top_n: number of buildings for top/bottom plots
+        size_metric: metric to use for bubble size ('kwh_estimate' or 'co2_avoided_t')
+    
+    Returns:
+        fig_top: Plotly Figure for top N buildings
+        fig_bottom: Plotly Figure for bottom N buildings
+    """
+    # Sort by energy output
+    df_sorted = df.sort_values("kwh_estimate", ascending=False)
+
+    # Top N
+    df_top = df_sorted.head(top_n).copy()
+    df_top["category"] = "Top 100"
+
+    # Bottom N
+    df_bottom = df_sorted.tail(top_n).copy()
+    df_bottom["category"] = "Bottom 100"
+
+    # Common hover info
+    hover_cols = ["bldg_id", "capex_usd", "simple_payback_years", "kwh_estimate", "co2_avoided_t"]
+
+    # Top plot
+    fig_top = px.scatter(
+        df_top,
+        x="capex_usd",
+        y="simple_payback_years",
+        size=size_metric,
+        color="category",
+        hover_data=hover_cols,
+        labels={
+            "capex_usd": "Investment (USD)",
+            "simple_payback_years": "Payback (years)",
+            "kwh_estimate": "Energy Output (kWh/year)",
+            "co2_avoided_t": "Avoided CO₂ (t/year)",
+            "category": "Ranking"
+        },
+        title=f"Top {top_n} Buildings by Energy Output"
+    )
+    fig_top.update_traces(marker=dict(opacity=0.7, line=dict(width=1, color='DarkSlateGrey')))
+    fig_top.update_layout(legend_title_text="Category")
+
+    # Bottom plot
+    fig_bottom = px.scatter(
+        df_bottom,
+        x="capex_usd",
+        y="simple_payback_years",
+        size=size_metric,
+        color="category",
+        hover_data=hover_cols,
+        labels={
+            "capex_usd": "Investment (USD)",
+            "simple_payback_years": "Payback (years)",
+            "kwh_estimate": "Energy Output (kWh/year)",
+            "co2_avoided_t": "Avoided CO₂ (t/year)",
+            "category": "Ranking"
+        },
+        title=f"Bottom {top_n} Buildings by Energy Output"
+    )
+    fig_bottom.update_traces(marker=dict(opacity=0.7, line=dict(width=1, color='DarkSlateGrey')))
+    fig_bottom.update_layout(legend_title_text="Category")
+
+    return fig_top, fig_bottom
 
 
-def grouped_bars(df, top_n=100, by="kwh_estimate"):
+def grouped_bars(df, top_n=10, by="kwh_estimate"):
     # Select top N by chosen ranking
     top_df = df.nlargest(top_n, by)
 
     # Melt for grouped bars
     plot_df = top_df.melt(
         id_vars=["bldg_id"],
-        value_vars=["kwh_estimate", "capex_usd"],
+        value_vars=["kwh_estimate", "capex_usd", "simple_payback_years"],
         var_name="Metric",
         value_name="Value"
     )
