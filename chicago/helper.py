@@ -1,3 +1,6 @@
+from shapely.geometry import LineString
+import numpy as np
+
 # Assumptions for energy estimation (physics)
 system_efficiency  = 0.18 # 18% panel + system efficiency
 derating_factor    = 0.77 # Account for system losses (inverters, wiring, etc.)
@@ -6,13 +9,25 @@ grid_ef_kg_per_kwh = 0.40  # kg CO2 per kWh (US grid average; use 0.90 for coal,
 
 # Assumptions for financial estimation (market)
 pv_power_density_kw_per_m2 = 0.18  # kW per m²
-installed_cost_per_kw      = 1800  # $/kW
+installed_cost_per_kw      = 1800  # $/kW base capex per kW
+scale_discount             = 0.08  # bigger systems get up to ~8% discount (tunable)
 om_rate                    = 0.01  # annual O&M fraction of CapEx
 tariff_usd_per_kwh         = 0.15  # $/kWh
 
+rng = np.random.default_rng(42)  # for reproducible noise
 
-from shapely.geometry import LineString
-import numpy as np
+# orientation multiplier
+orientation_factor = {
+    "South": 1.00,
+    "Southeast": 0.98,
+    "Southwest": 0.98,
+    "East": 0.92,
+    "West": 0.92,
+    "Flat": 0.90,
+    "Northeast": 0.85,
+    "Northwest": 0.85,
+    "North": 0.80
+}
 
 
 def get_orientation(geom): 
@@ -61,20 +76,18 @@ def azimuth_to_orientation(angle):
     return "Unknown"
 
 
-def get_kwh(ghi, area):
-    """
-    Estimate annual energy output (kWh) from solar irradiance and roof area.
-    
-    Parameters:
-        ghi (float): Global Horizontal Irradiance in Wh/m²/year
-        area (float): Roof area in m²
-    
-    Returns:
-        float: Estimated energy output in kWh/year
-    """
-    if ghi is None or area is None or ghi <= 0 or area <= 0:
-        return 0
-    return ghi * (area * usable_roof_area) * system_efficiency * derating_factor / 1000
+def get_kwh(df):
+
+    if df["ghi_sum"] is None or df["surface_area"] is None or df["ghi_sum"] <= 0 or df["surface_area"] <= 0:
+        df["raw_kwh_estimate"] = 0
+        df["kwh_estimate"] = 0
+    else:
+        df["raw_kwh_estimate"] = df["ghi_sum"] * (df["surface_area"] * usable_roof_area) * system_efficiency * derating_factor / 1000
+        df["orientation_cat"] = df["orientation"].fillna("Flat")
+        df["orientation_factor"] = df["orientation_cat"].map(orientation_factor).fillna(0.95)
+        df["kwh_estimate"] = df[raw_kwh_col] * df["orientation_factor"]
+
+    return df
 
 
 def get_co2_avoided(annual_kwh, grid_ef_kg_per_kwh=grid_ef_kg_per_kwh):
@@ -119,7 +132,16 @@ def get_finance_computations(df, annual_kwh_col = "kwh_estimate", roof_area_col 
     df["system_kw"] = df[roof_area_col] * usable_roof_area * pv_power_density_kw_per_m2
     
     # Financial metrics
-    df["capex_usd"] = df["system_kw"] * installed_cost_per_kw
+
+    # size-dependent capex per kW (decreasing with size)
+    # a simple smooth curve: cost = base * (1 - discount * log(1 + system_kw))
+    df["capex_per_kw_adj"] = installed_cost_per_kw * (1 - scale_discount * np.log1p(df["system_kw"]))
+    df["capex_per_kw_adj"] = df["capex_per_kw_adj"].clip(lower=800)  # floor
+    # apply a small random installation complexity premium/discount (±5%)
+    df["capex_per_kw_adj"] *= (1 + rng.normal(0, 0.05, size=len(df)))
+    # compute capex_usd
+    df["capex_usd"] = df["system_kw"] * df["capex_per_kw_adj"]
+
     df["annual_savings_usd"] = df["annual_kwh"] * tariff_usd_per_kwh
     df["annual_om_usd"] = df["capex_usd"] * om_rate
     
