@@ -1,5 +1,6 @@
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Polygon
 import numpy as np
+import pandas as pd
 
 # Assumptions for energy estimation (physics)
 system_efficiency  = 0.18 # 18% panel + system efficiency
@@ -30,7 +31,7 @@ orientation_factor = {
 }
 
 
-def get_orientation(geom): 
+def get_orientation_angle(geom): 
     """Compute orientation (azimuth) from geometry
     1 Extract the longest edge of the polygon (assuming it's aligned with the roof ridge).
     2. Compute the angle of that line."""
@@ -54,7 +55,35 @@ def get_orientation(geom):
     return angle
 
 
-def azimuth_to_orientation(angle):
+def compute_orientation_angle(gdf):
+    """
+    Vectorized extraction of the longest edge orientation (azimuth) for each polygon.
+    Much faster than looping row-by-row.
+    """
+
+    angles = []
+    for geom in gdf.geometry.values:
+        if geom is None or geom.is_empty or geom.geom_type != "Polygon":
+            angles.append(np.nan)
+            continue
+
+        # extract exterior coords as np array
+        coords = np.asarray(geom.exterior.coords)
+        seg = coords[1:] - coords[:-1]            # segment vectors
+        dx = seg[:, 0]
+        dy = seg[:, 1]
+        lengths = np.hypot(dx, dy)
+
+        # longest segment
+        i_max = lengths.argmax()
+        angle = (np.degrees(np.arctan2(dy[i_max], dx[i_max])) + 360) % 360
+        angles.append(angle)
+
+    gdf["orientation"] = angles
+    return gdf
+
+
+def categorize_orientation(angle):
     """Convert azimuth angle (0–360°) into a cardinal/intercardinal orientation label."""
     
     # Define boundaries for compass sectors
@@ -76,18 +105,101 @@ def azimuth_to_orientation(angle):
     return "Unknown"
 
 
-def get_kwh(df):
+def categorize_orientation_from_angle(gdf):
+    """
+    Convert azimuth angle into cardinal direction labels (vectorized).
+    """
 
-    if df["ghi_sum"] is None or df["surface_area"] is None or df["ghi_sum"] <= 0 or df["surface_area"] <= 0:
-        df["raw_kwh_estimate"] = 0
-        df["kwh_estimate"] = 0
-    else:
-        df["raw_kwh_estimate"] = df["ghi_sum"] * (df["surface_area"] * usable_roof_area) * system_efficiency * derating_factor / 1000
-        df["orientation_cat"] = df["orientation"].fillna("Flat")
-        df["orientation_factor"] = df["orientation_cat"].map(orientation_factor).fillna(0.95)
-        df["kwh_estimate"] = df[raw_kwh_col] * df["orientation_factor"]
+    angle = gdf["orientation"].to_numpy()
 
-    return df
+    bins = np.array([22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5, 360.0])
+    labels = np.array([
+        "North",
+        "Northeast",
+        "East",
+        "Southeast",
+        "South",
+        "Southwest",
+        "West",
+        "Northwest",
+        "North"   # wrap around
+    ])
+
+    # digitize assigns each angle to a bin index
+    idx = np.digitize(angle, bins, right=False)
+
+    # ensure idx stays within label range
+    idx = np.clip(idx, 0, len(labels) - 1)
+
+    gdf["orientation_cat"] = labels[idx]
+
+    # fallback for NaN
+    gdf.loc[gdf["orientation"].isna(), "orientation_cat"] = "Flat"
+    return gdf
+
+
+def get_kwh(row):
+
+    # handle missing values
+    if pd.isna(row["ghi_sum"]) or pd.isna(row["surface_area"]) or row["ghi_sum"] <= 0 or row["surface_area"] <= 0:
+        row["raw_kwh_estimate"] = 0
+        row["kwh_estimate"] = 0
+        return row
+
+    # raw kWh
+    row["raw_kwh_estimate"] = (
+        row["ghi_sum"]
+        * (row["surface_area"] * usable_roof_area)
+        * system_efficiency
+        * derating_factor
+        / 1000  # convert Wh → kWh
+    )
+
+    # orientation categorization
+    row["orientation_cat"] = str(row["orientation"]).strip() if pd.notna(row["orientation"]) else "Flat"
+    row["orientation_factor"] = orientation_factor.get(row["orientation_cat"], 0.95)
+
+    # adjusted
+    row["kwh_estimate"] = row["raw_kwh_estimate"] * row["orientation_factor"]
+
+    return row
+
+
+def compute_kwh(gdf):
+    # Basic masks
+    valid = (
+        gdf["ghi_sum"].notna()
+        & gdf["surface_area"].notna()
+        & (gdf["ghi_sum"] > 0)
+        & (gdf["surface_area"] > 0)
+    )
+
+    # Raw kWh estimate
+    usable_area = gdf["surface_area"] * usable_roof_area
+
+    raw_kwh = (
+        gdf["ghi_sum"] * usable_area * system_efficiency * derating_factor / 1000
+    )
+
+    gdf["raw_kwh_estimate"] = raw_kwh.where(valid, 0)
+
+    # Orientation cleaning + factor mapping
+    orientation_clean = (
+        gdf["orientation"]
+        .fillna("Flat")          # handle missing
+        .astype(str)
+        .str.strip()             # remove whitespace
+    )
+
+    gdf["orientation_cat"] = orientation_clean
+
+    # Map orientation factor vectorized
+    gdf["orientation_factor"] = gdf["orientation_cat"].map(orientation_factor).fillna(0.95)
+
+    # Final adjusted kWh
+    gdf["kwh_estimate"] = gdf["raw_kwh_estimate"] * gdf["orientation_factor"]
+
+    return gdf
 
 
 def get_co2_avoided(annual_kwh, grid_ef_kg_per_kwh=grid_ef_kg_per_kwh):
