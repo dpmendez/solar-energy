@@ -4,7 +4,7 @@ This interactive dashboard visualizes the annual rooftop solar potential of buil
 
 👉 Live Demo: https://solar-energy-k3vj.onrender.com/
 
-⚠️ Note: The live app currently displays a limited area of Chicago, but the analysis covers the entire city. A summary map and table show the top 100 buildings citywide with the highest estimated solar potential.
+⚠️ Note: The live app currently displays a limited area of Chicago with simplified building footprints, but the analysis covers the entire city and considering the full available building area. A summary map and table show the top 100 buildings citywide with the highest estimated solar potential.
 
 ## 🌍 Why It Matters
 
@@ -39,7 +39,7 @@ By combining solar potential with financial and climate indicators, this project
 Input data is a GeoDataFrame with:
 
 * Building footprints: [City of Chicago data](https://data.cityofchicago.org)
-updated November 13th 2024 
+updated June 2025. 
 * Annual solar radiation values (GHI, DNI, DHI): [National Solar Radiation Database](https://nsrdb.nrel.gov/data-viewer) for 2023, 2km resolution, 60 minutes interval.
 * Derived features: 
   * Estimated energy output (kWh/year) 
@@ -48,11 +48,10 @@ updated November 13th 2024
 
 Note: While the dashboard currently displays only a subset of buildings, the full analysis includes all of Chicago. The top 100 most promising buildings are highlighted regardless of display area.
 
-## 🔧 Wishful Improvements
+## 🔧 Improvements
 
 - [X] Enable exportable reports of top-performing rooftops for solar targeting.
 - [X] Show a summary view of the 100 best candidates.
 - [ ] Add clear outlines for recommended buildings.
-- [ ] Expand to other cities using the same analysis pipeline.
 - [ ] Integrate climate equity, grid proximity, and policy constraints.
-- [ ] Provide actionable summaries for government decision-making and urban energy planning.
+- [ ] Expand to other cities using the same analysis pipeline.
