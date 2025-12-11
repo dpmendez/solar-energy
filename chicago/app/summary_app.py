@@ -8,8 +8,21 @@ from dash import dcc, html, dash_table, Input, Output
 from dash.dash_table.Format import Format, Group, Scheme
 from viz import plot_top_k_mapbox
 
+### Memory logging setup
+import psutil, os, threading, time
+
+def log_memory():
+    process = psutil.Process(os.getpid())
+    while True:
+        mem_mb = process.memory_info().rss / (1024 ** 2) # Convert to MB
+        print(f"[Memory usage] {mem_mb:.2f} MB")
+        time.sleep(5)
+
+threading.Thread(target=log_memory, daemon=True).start()
+
 
 ### Get the data
+# gdf_avg = gpd.read_file("../data/solar_summary.geojson")
 gdf_avg = gpd.read_file("../data/central_chicago_solar_summary.geojson")
 gdf_avg = gdf_avg.reset_index(drop=True)    # Reset index to ensure it's clean
 gdf_avg["uid"] = gdf_avg.index.astype(str)  # Explicitly store it for use in `locations`
@@ -97,7 +110,7 @@ app.layout = html.Div([
         dcc.Dropdown(
             id="roof-orientation",
             options=[{"label": "All", "value": "all"}] + [
-                {"label": o.title(), "value": o} for o in sorted(gdf_avg["orientation"].dropna().unique())
+                {"label": o.title(), "value": o} for o in sorted(gdf_avg["orientation_cat"].dropna().unique())
             ],
             value="all"
         ),
@@ -185,7 +198,7 @@ def update_map(metric, orientation):
     if orientation == "all":
         filtered_gdf = gdf_avg.copy()
     else:
-        filtered_gdf = gdf_avg[gdf_avg["orientation"] == orientation]
+        filtered_gdf = gdf_avg[gdf_avg["orientation_cat"] == orientation]
 
     fig = px.choropleth_mapbox(
         filtered_gdf,
@@ -266,4 +279,4 @@ def update_top_k(ranking):
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=8080) # dash uses this port on render
+    app.run(debug=False, host="0.0.0.0", port=8084) # dash uses this port on render

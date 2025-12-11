@@ -130,11 +130,14 @@ def categorize_orientation_from_angle(gdf):
 
     # ensure idx stays within label range
     idx = np.clip(idx, 0, len(labels) - 1)
-
+    print(idx)
+    print(labels)
+    print(labels[idx])
     gdf["orientation_cat"] = labels[idx]
 
     # fallback for NaN
     gdf.loc[gdf["orientation"].isna(), "orientation_cat"] = "Flat"
+    print(gdf.head())
     return gdf
 
 
@@ -182,16 +185,6 @@ def compute_kwh(gdf):
     )
 
     gdf["raw_kwh_estimate"] = raw_kwh.where(valid, 0)
-
-    # Orientation cleaning + factor mapping
-    orientation_clean = (
-        gdf["orientation"]
-        .fillna("Flat")          # handle missing
-        .astype(str)
-        .str.strip()             # remove whitespace
-    )
-
-    gdf["orientation_cat"] = orientation_clean
 
     # Map orientation factor vectorized
     gdf["orientation_factor"] = gdf["orientation_cat"].map(orientation_factor).fillna(0.95)
