@@ -159,7 +159,7 @@ app.layout = html.Div([
                     {"name": "Avoided CO2 t/year", "id": "co2_avoided_t", 
                      "type": "numeric", 
                      "format": Format(group=Group.yes, precision=1, scheme=Scheme.fixed)},
-                    {"name": "Orientation", "id": "orientation"},
+                    {"name": "Orientation", "id": "orientation_cat"},
                     {"name": "Lat", "id": "lat"},
                     {"name": "Lon", "id": "lon"},
                 ],
@@ -267,7 +267,7 @@ def update_top_k(ranking):
             print("Warning: failed to convert df_map to EPSG:4326 — check CRS")
 
     # Table
-    table_cols = ["bldg_id", "kwh_estimate", "capex_usd", "simple_payback_years", "co2_avoided_t",  "orientation", "lat", "lon"]
+    table_cols = ["bldg_id", "kwh_estimate", "capex_usd", "simple_payback_years", "co2_avoided_t",  "orientation_cat", "lat", "lon"]
     present_cols = [c for c in table_cols if c in df_map.columns]
     df_table = df_map.drop(columns="geometry", errors="ignore").copy()
     df_table = df_table[present_cols].reset_index(drop=True)
