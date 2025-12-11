@@ -6,3 +6,4 @@ plotly
 shapely
 fiona
 gunicorn
+psutil
