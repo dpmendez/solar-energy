@@ -55,3 +55,8 @@ Note: While the dashboard currently displays only a subset of buildings, the ful
 - [ ] Add clear outlines for recommended buildings.
 - [ ] Integrate climate equity, grid proximity, and policy constraints.
 - [ ] Expand to other cities using the same analysis pipeline.
+
+### Complexity layers
+- [ ] Seasonal variability
+- [ ] Infeer building heights, from ground truth or satelite data.
+- [ ] Usable area after excluding HVAC equipment, water tanks, etc, from satelite data.
